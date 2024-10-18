@@ -1,35 +1,72 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useState, useMemo } from "react";
 
-function App() {
-  const [count, setCount] = useState(0)
+const ListComponent = () => {
+  const [usersData, setUsersData] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch("https://dummyjson.com/users");
+        if (!response.ok) throw new Error("Network response was not ok");
+        const result = await response.json();
+        setUsersData(result.users);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Get the current items per page
+  const currentItems = useMemo(() => {
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    return usersData.slice(indexOfFirstItem, indexOfLastItem);
+  }, [currentPage, usersData]);
+
+  // Change Page
+  const paginate = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
+  // Pagination
+  const pageNumbers = useMemo(() => {
+    const totalPages = Math.ceil(usersData.length / itemsPerPage);
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }, [usersData.length, itemsPerPage]);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+      <h1>List Component</h1>
+      <ul style={{ listStyle: "none" }}>
+        {currentItems.map(({ id, firstName }) => (
+          <li key={id}>{firstName}</li>
+        ))}
+      </ul>
+      <div className="pagination">
+        {pageNumbers.map((number) => (
+          <button key={number} onClick={() => paginate(number)}>
+            {number}
+          </button>
+        ))}
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
     </>
-  )
-}
+  );
+};
 
-export default App
+export default function App() {
+  return (
+    <div className="App">
+      <ListComponent />
+    </div>
+  );
+}
